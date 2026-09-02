@@ -58,12 +58,15 @@ async function main() {
     // v0.3.13 回归：抽屉「打开后先正确后收缩」——closeOverlay 加 400ms 防误关守卫
     //（真机 WebView tap 把点击重定向到刚出现的遮罩 → 误关）。校验 lastOpenAt 时间戳、
     // openOverlay 里刷新它、closeOverlay 开头 400ms 内忽略，且守卫在 state.overlay=false 之前。
-    check("v0.3.13 closeOverlay 400ms 防误关守卫", patched.includes("lastOpenAt") && patched.includes("state.lastOpenAt = Date.now()") && patched.includes("Date.now() - state.lastOpenAt < 400") && patched.indexOf("Date.now() - state.lastOpenAt < 400") < patched.indexOf("state.overlay = false") && patched.includes('window.__dshMobilePatchVersion = "0.3.14"'));
+    check("v0.3.13 closeOverlay 400ms 防误关守卫", patched.includes("lastOpenAt") && patched.includes("state.lastOpenAt = Date.now()") && patched.includes("Date.now() - state.lastOpenAt < 400") && patched.indexOf("Date.now() - state.lastOpenAt < 400") < patched.indexOf("state.overlay = false") && patched.includes('window.__dshMobilePatchVersion = "0.3.15"'));
     // v0.3.14 回归：抽屉打开后 1-3s「对话区宽度收缩、右侧空白」——DSH 用 frame 上的
     // data-details-collapsed 数据属性驱动详情面板（详情列 = grid 轨道3），原 layoutObserver
     // 只盯 style 抓不到。校验：新增 armLayoutWatchdog 400ms 布防守卫（覆盖态保持 0px 1fr 0px
     // + 列固定）、observer attributeFilter 扩展含 class / data-details-collapsed、版本号。
-    check("v0.3.14 详情面板布防守卫", patched.includes("function armLayoutWatchdog") && patched.includes("setInterval(function") && patched.includes("}, 400);") && patched.includes('attributeFilter: ["style", "class", "data-details-collapsed"]') && patched.includes("armLayoutWatchdog();") && patched.includes('window.__dshMobilePatchVersion = "0.3.14"'));
+    check("v0.3.14 详情面板布防守卫", patched.includes("function armLayoutWatchdog") && patched.includes("setInterval(function") && patched.includes("}, 400);") && patched.includes('attributeFilter: ["style", "class", "data-details-collapsed"]') && patched.includes("armLayoutWatchdog();") && patched.includes('window.__dshMobilePatchVersion = "0.3.15"'));
+    // v0.3.15 回归：抽屉打开后「对话区收缩」最终兜底——纯 CSS 强制 frame grid（0px 1fr 0px）、
+    // arm() 每步独立 try/catch、看门狗覆盖态重挂 body 标记。
+    check("v0.3.15 CSS grid 兜底+arm 加固", patched.includes("body[data-dsh-overlay] [class$=_frame]") && patched.includes("grid-template-columns:0px minmax(0px, 1fr) 0px!important") && patched.includes('window.__dshMobilePatchVersion = "0.3.15"'));
     check("补丁幂等（不重复注入）", once === patched && patched.includes("dsh-mobile-patch"));
     // v0.3.8 回归：设置 .content 的移动端选择器必须是「后代选择器」（带空格）——
     // [role=dialog][aria-modal=true][class$=_content]（无空格）要求元素同时带 role+aria，
@@ -142,10 +145,13 @@ async function main() {
   // 5) 带 Cookie GET / -> DSH 首页 + __DSH_BOOT__
   { const r = await fetch(`${BASE}/`, { headers: { cookie } }); const t = await r.text();
     check("带 Cookie GET / -> 200 + __DSH_BOOT__", r.status === 200 && t.includes("__DSH_BOOT__"), `got ${r.status}`); }
-  // 6) 静态资源 immutable
-  { const r = await fetch(`${BASE}/assets/index-Dqw48FrP.js`, { headers: { cookie } });
+  // 6) 静态资源 immutable（资产哈希随 DSH 版本变化，从首页 HTML 动态取，避免硬编码过期）
+  { const home = await fetch(`${BASE}/`, { headers: { cookie } }); const h = await home.text();
+    const m = h.match(/assets\/index-[A-Za-z0-9]+\.js/);
+    const assetPath = m ? m[0] : "assets/index-Dqw48FrP.js";
+    const r = await fetch(`${BASE}/${assetPath}`, { headers: { cookie } });
     const cc = r.headers.get("cache-control") ?? "";
-    check("静态资源 immutable 缓存", r.status === 200 && cc.includes("immutable"), `cc=${cc}`); }
+    check("静态资源 immutable 缓存", r.status === 200 && cc.includes("immutable"), `cc=${cc} status=${r.status} asset=${assetPath}`); }
   // 7) /api RPC 到达 DSH 业务层
   { const eps = ["session/query", "agent/presets", "llm/providers", "settings/describe", "conversation/query"];
     let got = false;
