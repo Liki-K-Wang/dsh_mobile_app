@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:gravity="center_horizontal"
+    android:background="@color/background">
+
+    <!-- 品牌区域 -->
+    <ImageView
+        android:id="@+id/appIcon"
+        android:layout_width="88dp"
+        android:layout_height="88dp"
+        android:layout_marginTop="48dp"
+        android:src="@drawable/ic_app"
+        android:contentDescription="@string/app_name"
+        android:importantForAccessibility="no" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/home_title"
+        style="@style/TextAppearance.DSH.Headline" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/home_subtitle"
+        style="@style/TextAppearance.DSH.BodySecondary"
+        android:gravity="center" />
+
+    <!-- 按钮组 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnScan"
+        style="@style/Widget.DSH.Button.Primary"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="36dp"
+        android:text="@string/btn_scan"
+        app:icon="@drawable/ic_qr"
+        app:iconGravity="textStart"
+        app:iconTint="@color/on_primary" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnManual"
+        style="@style/Widget.DSH.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="12dp"
+        android:text="@string/btn_manual"
+        app:icon="@drawable/ic_edit"
+        app:iconGravity="textStart"
+        app:iconTint="@color/text_secondary" />
+
+    <!-- 已保存连接卡片 -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/savedCard"
+        style="@style/Widget.DSH.Card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        app:cardElevation="2dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical">
+
+            <!-- 左侧色条 -->
+            <View
+                android:id="@+id/savedAccent"
+                android:layout_width="4dp"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="14dp"
+                android:background="@color/primary" />
+
+            <!-- 信息区 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/saved_connection"
+                    style="@style/TextAppearance.DSH.Label" />
+
+                <TextView
+                    android:id="@+id/savedName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    style="@style/TextAppearance.DSH.Title" />
+
+                <TextView
+                    android:id="@+id/savedHost"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    style="@style/TextAppearance.DSH.Caption" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/savedMode"
+                    style="@style/Widget.DSH.Chip.Mode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:clickable="false"
+                    android:checkable="false" />
+            </LinearLayout>
+
+            <!-- 操作按钮 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnConnect"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:contentDescription="@string/btn_connect"
+                    app:icon="@drawable/ic_connect"
+                    app:iconTint="@color/primary"
+                    app:iconSize="22dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDelete"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="4dp"
+                    android:contentDescription="@string/btn_delete"
+                    app:icon="@drawable/ic_delete"
+                    app:iconTint="@color/warn"
+                    app:iconSize="20dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- 空白状态（无保存配置时显示） -->
+    <LinearLayout
+        android:id="@+id/emptyState"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="visible">
+
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@drawable/ic_empty"
+            android:alpha="0.4"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/saved_empty_title"
+            style="@style/TextAppearance.DSH.BodySecondary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/saved_empty_desc"
+            style="@style/TextAppearance.DSH.Caption"
+            android:gravity="center"
+            android:lineSpacingExtra="3dp" />
+    </LinearLayout>
+</LinearLayout>

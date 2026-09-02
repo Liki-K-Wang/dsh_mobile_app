@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 空状态图标：设备连接示意 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- 手机轮廓 -->
+    <path
+        android:fillColor="#4D7CFF"
+        android:pathData="M20,8h24c2.2,0 4,1.8 4,4v40c0,2.2 -1.8,4 -4,4H20c-2.2,0 -4,-1.8 -4,-4V12c0,-2.2 1.8,-4 4,-4zM20,50h24V14H20v36z" />
+    <!-- 屏幕内容 -->
+    <path
+        android:fillColor="#9AA3B2"
+        android:fillAlpha="0.4"
+        android:pathData="M24,18h16v20H24z" />
+    <!-- 连接线 -->
+    <path
+        android:fillColor="#4D7CFF"
+        android:fillAlpha="0.6"
+        android:pathData="M32,38m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <path
+        android:strokeColor="#4D7CFF"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M32,41v6M32,47l-3,3M32,47l3,3" />
+    <!-- 电脑图标 -->
+    <path
+        android:fillColor="#9AA3B2"
+        android:fillAlpha="0.3"
+        android:pathData="M16,56h32l-2,4H18z" />
+</vector>

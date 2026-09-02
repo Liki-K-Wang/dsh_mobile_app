@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>__TITLE__</title>
+<style>
+  :root {
+    /* v0.3.4：与 DSH 设置页（通用设置/模型/Agent 预设）同款视觉；
+       跟随系统明暗主题（与 DSH 默认 system 主题一致）；深色用 media 覆盖 */
+    --bg: #f4f5f7; --panel: #ffffff; --panel2: #f0f2f5; --text: #1c2025;
+    --muted: #5f6b7a; --accent: #4d7cff; --ok: #1a7f37; --bad: #d1242f;
+    --border: #e2e6ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --text: #e6e8ee;
+      --muted: #9aa3b2; --accent: #4d7cff; --ok: #3fb950; --bad: #f85149;
+      --border: #2a2f3a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 60px; }
+  h1 { margin: 0 0 6px; font-size: 20px; font-weight: 600; line-height: 1.3; }
+  .sub { color: var(--muted); font-size: 13px; line-height: 20px; margin-bottom: 24px; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .rowText { flex: 1; flex-direction: column; gap: 4px; min-width: 0; display: flex; }
+  .title { font-size: 14px; line-height: 22px; }
+  .desc { color: var(--muted); font-size: 12px; line-height: 18px; }
+  .addr { font-size: 13px; line-height: 2; }
+  .qr { display: flex; justify-content: center; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+  .qr img { width: min(240px, 60vw); height: auto; display: block; border-radius: 10px; background: #fff; padding: 6px; }
+  code { background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; font-size: 12.5px; color: var(--text); word-break: break-all; }
+  .muted { color: var(--muted); }
+  .status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+  .dot.bad { background: var(--bad); box-shadow: 0 0 6px var(--bad); }
+  .note { font-size: 12px; color: var(--muted); line-height: 1.8; }
+  .token-box { font-size: 11.5px; color: var(--muted); word-break: break-all; }
+  .btn { height: 36px; padding: 0 14px; border-radius: 18px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; font-size: 14px; line-height: 22px; }
+  .btn:hover { background: var(--panel2); }
+  .btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
+  .btn.primary:hover { background: var(--accent); }
+  .refresh { text-align: center; margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>DSH 手机连接 · 配对</h1>
+  <div class="sub">主机 <code>__NAME__</code> · 网关端口 <code>__PORT__</code></div>
+
+  <div class="row">
+    <div class="rowText">
+      <div class="title">用手机 App 扫描二维码</div>
+      <div class="desc">在安卓手机打开 DSH 连接器 App → 点「扫码连接」扫描下方二维码；App 自动检测局域网 / 远程，连上即可对话。</div>
+    </div>
+  </div>
+  <div class="qr" style="margin:12px 0 4px"><img src="__QR__" alt="配对二维码" /></div>
+
+  <div class="row">
+    <div class="rowText">
+      <div class="title">局域网地址</div>
+      <div class="desc">同一 WiFi / 网段可直接访问，无需额外配置</div>
+    </div>
+  </div>
+  <div class="addr">__LAN__</div>
+
+  <div class="row">
+    <div class="rowText">
+      <div class="title">远程地址（Tailscale / 隧道）</div>
+      <div class="desc">需手机安装 Tailscale 并登录同一网络（本机 Tailscale: <code>__NAME__</code>）</div>
+    </div>
+  </div>
+  <div class="addr">__WAN__</div>
+
+  <div class="row">
+    <div class="rowText">
+      <div class="title">DeepSeek Harness Web 状态</div>
+      <div class="desc">__DSH_URL__：<b class="__DSH_CLASS__">__DSH_STATUS__</b>　DSH 未运行时请先在本机执行 <code>dsh web</code> 再刷新本页。</div>
+    </div>
+    <span class="status"><span class="dot __DSH_CLASS__"></span></span>
+  </div>
+
+  <div class="row">
+    <div class="rowText">
+      <div class="title">安全说明</div>
+      <div class="desc">网关每次启动生成新的 256-bit 配对令牌并写入二维码；会话以 HttpOnly Cookie 保护，8 小时后过期。未持有令牌的设备访问会被拒绝（401）。请勿把本页二维码发给他人。</div>
+      <div class="token-box" style="margin-top:6px">当前令牌：__TOKEN__</div>
+    </div>
+  </div>
+
+  <div class="refresh">
+    <button class="btn primary" onclick="location.reload()">刷新配对信息</button>
+  </div>
+</div>
+<script>
+  // 检测手机配对成功 → 自动跳转到主 GUI
+  (function poll() {
+    fetch("/pair/connected", { cache: "no-store" })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.sessions > 0) {
+          location.href = "__DSH_URL__/";
+        } else {
+          setTimeout(poll, 2000);
+        }
+      })
+      .catch(function() { setTimeout(poll, 3000); });
+  })();
+</script>
+</body>
+</html>

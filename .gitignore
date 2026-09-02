@@ -1,0 +1,48 @@
+# ============================================================
+# dsh_mobile_app - git ignore rules
+# Secrets, build outputs, local tooling, and dev scratch must
+# NEVER be pushed to GitHub.
+# ============================================================
+
+# ---- Secrets (never commit) ----
+# plaintext signing passwords
+android/keystore.properties
+# release signing keystore
+android/keystore/
+# machine-local Android SDK path
+android/local.properties
+# adb private key (temp)
+_adbkey_tmp
+_adbkey_tmp.pub
+
+# ---- Node / npm ----
+node_modules/
+dsh_mobile_app/node_modules/
+
+# ---- Android build outputs & caches ----
+android/app/build/
+android/build/
+android/.gradle/
+android/.kotlin/
+android/captures/
+*.iml
+.gradle/
+.idea/
+
+# ---- Local tooling (download-on-demand) ----
+tools/
+
+# ---- Built APK binaries (published as GitHub Release assets) ----
+*.apk
+
+# ---- Dev scratch / debug artifacts ----
+.chrome-tmp/
+dom-dump.html
+dom_mobile.html
+verify-v030.mjs
+_investigate.ps1
+
+# ---- OS / editor noise ----
+Thumbs.db
+Desktop.ini
+.DS_Store

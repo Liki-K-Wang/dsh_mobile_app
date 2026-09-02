@@ -1,0 +1,44 @@
+<resources>
+    <!-- 品牌色 -->
+    <color name="primary">#4D7CFF</color>
+    <color name="primary_dark">#3A5FD6</color>
+    <color name="primary_light">#7A9FFF</color>
+    <color name="on_primary">#FFFFFF</color>
+
+    <!-- 背景层次 -->
+    <color name="background">#0F1115</color>
+    <color name="surface">#171A21</color>
+    <color name="surface_alt">#1E222B</color>
+    <color name="surface_glass">#CC171A21</color>
+
+    <!-- 边框与分割线 -->
+    <color name="border">#2A2F3A</color>
+    <color name="border_light">#353B48</color>
+    <color name="divider">#1F2330</color>
+
+    <!-- 文字 -->
+    <color name="text_primary">#E6E8EE</color>
+    <color name="text_secondary">#9AA3B2</color>
+    <color name="text_tertiary">#6B7385</color>
+    <color name="text_on_dark">#FFFFFF</color>
+
+    <!-- 语义色 -->
+    <color name="ok">#3FB950</color>
+    <color name="ok_container">#1A3D22</color>
+    <color name="warn">#F85149</color>
+    <color name="warn_container">#3D1A1A</color>
+    <color name="info">#58A6FF</color>
+    <color name="info_container">#1A2D3D</color>
+
+    <!-- 基础色 -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+
+    <!-- 遮罩 -->
+    <color name="overlay_dark">#99000000</color>
+    <color name="overlay_notice">#CC1E222B</color>
+
+    <!-- 涟漪 -->
+    <color name="ripple_light">#1AFFFFFF</color>
+    <color name="ripple_primary">#1A4D7CFF</color>
+</resources>
