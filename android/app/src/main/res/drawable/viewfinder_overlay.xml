@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 取景框叠加层：半透明暗色背景 + 中央透明矩形 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 暗色背景层 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#66000000" />
+        </shape>
+    </item>
+    <!-- 中央透明矩形（通过 padding 留出取景区域） -->
+    <item
+        android:left="48dp"
+        android:right="48dp"
+        android:top="120dp"
+        android:bottom="200dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#00000000" />
+            <stroke
+                android:width="2dp"
+                android:color="#4D7CFF" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+</layer-list>

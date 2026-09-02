@@ -1,0 +1,69 @@
+<resources>
+    <string name="app_name">DSH 连接器</string>
+
+    <!-- 主页 -->
+    <string name="home_title">DeepSeek Harness 手机端</string>
+    <string name="home_subtitle">扫码连接电脑上的 DeepSeek Harness\nIP 变动时重新扫码即可</string>
+    <string name="btn_scan">扫码连接</string>
+    <string name="btn_manual">手动输入配对码</string>
+    <string name="saved_connection">已保存连接</string>
+    <string name="saved_empty_title">尚未配对</string>
+    <string name="saved_empty_desc">扫码或手动输入配对码\n连接电脑上的 DeepSeek Harness</string>
+    <string name="btn_connect">连接</string>
+    <string name="btn_delete">删除</string>
+    <string name="manual_hint">粘贴配对二维码内容（以 dshm://v1/ 开头或原始 JSON）</string>
+    <string name="manual_title">手动输入</string>
+    <string name="manual_paste">粘贴剪贴板</string>
+    <string name="manual_invalid">无法解析：请粘贴以 dshm://v1/ 开头的配对内容或原始 JSON</string>
+    <string name="manual_auto_detect">剪贴板中检测到配对信息，是否自动填入？</string>
+    <string name="clipboard_empty">剪贴板为空，请先复制配对内容</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">确定</string>
+    <string name="invalid_qr">无效的配对二维码</string>
+    <string name="saved_ok">已保存连接：%1$s</string>
+    <string name="delete_confirm">删除后需重新扫码才能连接。确定删除？</string>
+    <string name="deleted">已删除连接配置</string>
+    <string name="no_profile">未找到连接配置，请先扫码或手动输入</string>
+    <string name="last_connect">上次连接：%1$s</string>
+    <string name="not_connected">尚未连接</string>
+
+    <!-- 扫码页 -->
+    <string name="scan_title">扫描配对二维码</string>
+    <string name="scan_close">关闭</string>
+    <string name="scan_hint">对准电脑屏幕上的配对二维码</string>
+    <string name="scan_album">相册</string>
+    <string name="scan_torch">手电筒</string>
+    <string name="scan_torch_off">关闭手电筒</string>
+    <string name="scan_manual">手动输入</string>
+    <string name="scan_invalid">未识别到有效配对二维码，正在继续扫描…</string>
+    <string name="scan_album_decoding">正在解析图片…</string>
+    <string name="scan_album_failed">图片中没有可识别的配对二维码</string>
+    <string name="scan_no_camera">未获得相机权限，仍可用相册或手动输入连接</string>
+    <string name="scan_go_settings">去设置</string>
+    <string name="scan_overwrite_title">覆盖现有连接</string>
+    <string name="scan_overwrite_msg">将用新二维码覆盖当前连接「%1$s」。确定继续？</string>
+    <string name="scan_permission_needed">需要相机权限才能扫码</string>
+    <string name="perm_title">需要相机权限</string>
+    <string name="perm_msg">扫码需要相机权限；你也可以选择用相册或手动输入完成连接。</string>
+    <string name="perm_album">用相册</string>
+    <string name="perm_settings">去设置</string>
+
+    <!-- 连接页 -->
+    <string name="connecting">正在连接…</string>
+    <string name="connect_lan">正在探测局域网…</string>
+    <string name="connect_wan">局域网不可达，尝试远程地址…</string>
+    <string name="opening_ui">正在打开 DeepSeek Harness…</string>
+    <string name="mode_lan">局域网</string>
+    <string name="mode_wan">远程</string>
+    <string name="mode_unknown">未连接</string>
+    <string name="btn_disconnect">断开</string>
+    <string name="btn_cancel_connect">取消连接</string>
+    <string name="err_no_reachable">无法连接到电脑。\n\n请确认：\n· 电脑端网关已启动（gateway\\start.cmd）\n· 手机与电脑在同一局域网\n· 电脑 IP 变动？重新扫描二维码即可\n\n如需远程访问（不在同一局域网）：\n  可借助 Tailscale 等工具组网后扫码</string>
+    <string name="btn_retry">重试</string>
+    <string name="btn_rescan">重新配对</string>
+    <string name="dsh_not_ready">电脑端 DeepSeek Harness 未就绪：\n请先在电脑上运行 `dsh web`，然后重试。</string>
+    <string name="session_expired">会话已过期或未授权，请重新连接。</string>
+    <string name="load_failed">页面加载失败。</string>
+    <string name="close_app">再按一次返回键退出</string>
+    <string name="web_loading">页面加载中…</string>
+</resources>

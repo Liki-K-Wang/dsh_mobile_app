@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 背景 -->
+    <path
+        android:fillColor="#171A21"
+        android:pathData="M18,0h72a18,18 0 0 1 18,18v72a18,18 0 0 1 -18,18h-72a18,18 0 0 1 -18,-18v-72a18,18 0 0 1 18,-18z" />
+    <!-- 二维码定位角：左上 -->
+    <path android:fillColor="#4D7CFF" android:pathData="M22,22h18v18h-18z" />
+    <path android:fillColor="#171A21" android:pathData="M27,27h8v8h-8z" />
+    <!-- 二维码定位角：右上 -->
+    <path android:fillColor="#4D7CFF" android:pathData="M68,22h18v18h-18z" />
+    <path android:fillColor="#171A21" android:pathData="M73,27h8v8h-8z" />
+    <!-- 二维码定位角：左下 -->
+    <path android:fillColor="#4D7CFF" android:pathData="M22,68h18v18h-18z" />
+    <path android:fillColor="#171A21" android:pathData="M27,73h8v8h-8z" />
+    <!-- 数据模块 -->
+    <path android:fillColor="#4D7CFF" android:pathData="M46,24h8v8h-8z" />
+    <path android:fillColor="#4D7CFF" android:pathData="M58,34h8v8h-8z" />
+    <path android:fillColor="#4D7CFF" android:pathData="M46,46h8v8h-8z" />
+    <path android:fillColor="#E6E8EE" android:pathData="M58,58h8v8h-8z" />
+    <path android:fillColor="#4D7CFF" android:pathData="M70,70h8v8h-8z" />
+    <path android:fillColor="#4D7CFF" android:pathData="M46,68h8v8h-8z" />
+    <path android:fillColor="#E6E8EE" android:pathData="M70,46h8v8h-8z" />
+    <path android:fillColor="#E6E8EE" android:pathData="M82,58h8v8h-8z" />
+    <path android:fillColor="#4D7CFF" android:pathData="M82,34h6v6h-6z" />
+    <path android:fillColor="#4D7CFF" android:pathData="M60,70h6v6h-6z" />
+</vector>
