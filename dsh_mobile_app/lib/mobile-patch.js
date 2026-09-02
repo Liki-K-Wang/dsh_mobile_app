@@ -29,6 +29,10 @@ const PATCH_MARKER = "data-dsh-mobile-patch";
 
 const PATCH_SCRIPT = `<script ${PATCH_MARKER}="1">
 (function(){
+  // v0.3.15：抽屉打开后「对话区收缩」最终兜底——新增纯 CSS 规则
+  // body[data-dsh-overlay] [class$=_frame]{grid-template-columns:0px minmax(0px,1fr) 0px!important}
+  // 用 !important 瞬间强制 frame grid（对话列恒满宽），不再依赖 JS 看门狗；
+  // arm() 每步独立 try/catch，保证看门狗/观察器必然挂载；看门狗覆盖态重挂 body 标记。
   // v0.3.14：抽屉打开后 1-3s「对话区宽度收缩、右侧空白」修复——DSH 用 frame 上的
   // data-details-collapsed 数据属性驱动「详情面板」（详情列 = grid 轨道3）。原 layoutObserver
   // 只盯 frame.style，抓不到 data-details-collapsed 变化；真机抽屉展开后 DSH 异步渲染把详情
@@ -64,7 +68,7 @@ const PATCH_SCRIPT = `<script ${PATCH_MARKER}="1">
   // 状态栏高度，浏览器 env() 本就为 0）——消除设置导航图标上方的多余空余；
   // v0.3.4：内容区密排（聊天列边距 32px→10px、表格更密、markdown 更紧凑）；
   // 悬浮球磁吸边框（配合 App 1.3.5）；配对界面统一为设置页风格（settings-pairing）。
-  try { window.__dshMobilePatchVersion = "0.3.14"; } catch (e) {}
+  try { window.__dshMobilePatchVersion = "0.3.15"; } catch (e) {}
   // 1) crypto.randomUUID 补齐：任何非安全上下文（http://LAN-IP / Tailscale）都缺失，
   //    桌面用局域网 IP 访问也一样会触发；安全上下文下已存在则 no-op。
   try {
@@ -125,6 +129,11 @@ const PATCH_SCRIPT = `<script ${PATCH_MARKER}="1">
       "  [data-dsh-overlay] [class*=_brand] svg{height:16px;width:auto}",
       "  body[data-dsh-overlay] [class$=_sidebarCol]{position:fixed!important;top:0!important;bottom:0!important;left:0!important;width:100vw!important;z-index:60!important;overflow:visible!important}",
       "  body[data-dsh-overlay] [class$=_sidebarCol] [class$=_root]{width:100%!important}",
+      // v0.3.15：纯 CSS 兜底——抽屉打开期间用 !important 强制 frame 的 grid 为
+      // 0px 1fr 0px（对话列恒满宽、详情轨恒 0）。此前只强制了侧栏本身（fixed 100vw），
+      // 若 JS 看门狗/观察器未生效（如 arm() 中途抛错），DSH 异步渲染撑开详情轨道时
+      // 对话区仍会被挤窄（真机“先正确后收缩”）。CSS !important > React 内联，同帧生效。
+      "  body[data-dsh-overlay] [class$=_frame]{grid-template-columns:0px minmax(0px, 1fr) 0px!important}",
       "}"
     ].join("\\n");
     document.head.appendChild(stL);
@@ -630,6 +639,9 @@ const PATCH_SCRIPT = `<script ${PATCH_MARKER}="1">
         var f = frameEl();
         if (!f) return;
         if (state.overlay) {
+          // v0.3.15：覆盖态必须持续重挂 body 标记，CSS !important 规则（侧栏满宽 + grid 满宽）
+          // 才始终生效——即使标记被意外移除，下一拍即恢复，对话区永不收缩。
+          try { document.body.setAttribute("data-dsh-overlay", "1"); } catch (e) {}
           applyOverlayLayout(f);
           applyColumnPins(f);
         } else {
@@ -643,15 +655,18 @@ const PATCH_SCRIPT = `<script ${PATCH_MARKER}="1">
     var frame = frameEl();
     if (!frame) return;
     // v0.3.9：无悬浮球（已删除）——侧边栏入口统一为「标题行最左侧图标」（armHeaderToggle 注入）。
-    armHeaderToggle();
-    ensureHeroToggle();
-    watchModelLogo();
-    armSessionAutoClose();
-    armStatsAutoClose();
-    ensureCollapsed(frame);
-    enforceMobileLayout(frame);
-    enforceMobileChatLayout();
-    armLayoutWatchdog();
+    // v0.3.15：每步独立 try/catch——此前 ensureCollapsed(frame) 的 b.click() 若在真机上抛错，
+    // 会中断整个 arm()，导致后面的 armLayoutWatchdog 与观察器从未挂载（抽屉打开后 DSH 异步
+    // 渲染撑开详情轨道时无人纠正 → “先正确后收缩”）。现在任一步失败都不影响后续加固挂载。
+    try { armHeaderToggle(); } catch (e) {}
+    try { ensureHeroToggle(); } catch (e) {}
+    try { watchModelLogo(); } catch (e) {}
+    try { armSessionAutoClose(); } catch (e) {}
+    try { armStatsAutoClose(); } catch (e) {}
+    try { ensureCollapsed(frame); } catch (e) {}
+    try { enforceMobileLayout(frame); } catch (e) {}
+    try { enforceMobileChatLayout(); } catch (e) {}
+    try { armLayoutWatchdog(); } catch (e) {}
     try {
       // v0.3.14：attributeFilter 增加 class / data-details-collapsed——DSH 用数据属性
       // 驱动详情面板，只盯 style 抓不到（详情轨道被撑开 → 对话区被挤窄）。
