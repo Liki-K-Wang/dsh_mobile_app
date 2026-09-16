@@ -1,0 +1,15 @@
+# dsh_mobile_app bundle patch：手机配对网关（令牌认证 + 反向代理 + WS 转发 +
+# 局域网 UDP 广播发现）。本包被 `dsh plugin --profile web add` 安装后，此层
+# 随 dsh.profile.bundles 自动挂载，无需在 profile 的 cordis.patch.yml 里手工
+# file:// 插入。
+#
+# config 显式重述与 DEFAULTS 一致的键（补丁替换整行 config，重述便于部署在
+# profile overlay 中按 id 覆盖）。令牌不在此配置：默认持久化到
+# ~/.dsh/mobile-gateway-token（跨重启稳定，手机扫码一次终身有效）。
+- insert:
+    - id: dsh_mobile_app
+      name: dsh_mobile_app
+      config:
+        port: 3081
+        host: 0.0.0.0
+        openBrowser: true
