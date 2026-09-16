@@ -82,6 +82,13 @@ class MainActivity : AppCompatActivity() {
                 .show()
         }
         refreshSaved()
+
+        // v1.4.0：打开即连 —— 已有配对配置（首次扫码已存储令牌）时直接进入连接页，
+        // 连接页内部带 UDP 广播发现 + 断线自愈。返回键仍回到本页（扫码/手动入口不变）。
+        // 仅冷启动触发（savedInstanceState == null），旋转等配置变化不重复拉起。
+        if (savedInstanceState == null && ProfileStore.loadProfile(this) != null) {
+            openConnect()
+        }
     }
 
     override fun onResume() {

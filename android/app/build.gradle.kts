@@ -22,8 +22,8 @@ android {
         applicationId = "com.deepseek.harness.mobile"
         minSdk = 24
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.3.7"
+        versionCode = 14
+        versionName = "1.4.1"
     }
 
     signingConfigs {

@@ -2,6 +2,10 @@ package com.deepseek.harness.mobile
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.CookieManager
@@ -23,6 +27,7 @@ import androidx.lifecycle.lifecycleScope
 import com.deepseek.harness.mobile.BuildConfig
 import com.deepseek.harness.mobile.databinding.ActivityConnectBinding
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -42,6 +47,14 @@ class ConnectActivity : AppCompatActivity() {
     private var mode: String = MODE_UNKNOWN
     private var webReady = false
     private var probeJob: Job? = null
+
+    // v1.4.0 断线自愈状态：自动重连计数 / 重连中标记 / 网络监听
+    private var autoRetries = 0
+    private var reconnecting = false
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+
+    // v1.4.1 本地回环隧道：页面来源变 127.0.0.1（回环 + 安全上下文），模型设置页可用
+    private val tunnel = LocalTunnel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,6 +76,7 @@ class ConnectActivity : AppCompatActivity() {
         webView = binding.webView
         setupWebView()
         setupBack()
+        armNetworkWatch()
 
         binding.btnRetry.setOnClickListener { connect() }
         binding.btnCancel.setOnClickListener { cancelConnect() }
@@ -125,6 +139,8 @@ class ConnectActivity : AppCompatActivity() {
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+                // v1.4.0：重连中触发的 onPageFinished（失败加载的错误页）不展示
+                if (reconnecting) return
                 webReady = true
                 showWeb()
             }
@@ -132,17 +148,21 @@ class ConnectActivity : AppCompatActivity() {
             override fun onReceivedHttpError(view: WebView?, request: WebResourceRequest?, errorResponse: WebResourceResponse?) {
                 super.onReceivedHttpError(view, request, errorResponse)
                 val status = errorResponse?.statusCode ?: 0
+                // v1.4.0：主帧 401/502 不再直接报错 —— 401（会话失效）可经重连重取 token 恢复，
+                // 502（DSH 未就绪）可能是电脑重启中；自动重连上限内自愈，超过才落错误页
                 if (request?.isForMainFrame == true && status == 401) {
-                    showError(getString(R.string.session_expired))
+                    onConnectFailed(getString(R.string.session_expired))
                 } else if (request?.isForMainFrame == true && status == 502) {
-                    showError(getString(R.string.dsh_not_ready))
+                    onConnectFailed(getString(R.string.dsh_not_ready))
                 }
             }
 
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
                 super.onReceivedError(view, request, error)
-                if (request?.isForMainFrame == true && error?.errorCode != WebViewClient.ERROR_HOST_LOOKUP) {
-                    showError(error?.description?.toString() ?: getString(R.string.load_failed))
+                // v1.4.0：主帧错误（含 ERROR_HOST_LOOKUP —— PC 换 IP/换网段后旧地址失联）
+                // 一律走自动重连，UDP 广播发现兜底找回新地址；连续失败才落错误页
+                if (request?.isForMainFrame == true) {
+                    onConnectFailed(error?.description?.toString() ?: getString(R.string.load_failed))
                 }
             }
         }
@@ -157,41 +177,146 @@ class ConnectActivity : AppCompatActivity() {
         }
     }
 
-    // 仅允许在同配对的 host 内导航；其它一律拦截（防钓鱼/越域）
+    // 仅允许在同配对的 host 与本地隧道来源内导航；其它一律拦截（防钓鱼/越域）
     private fun allowNavigation(url: String): Boolean {
-        val host = currentHost ?: return false
         val u = runCatching { Uri.parse(url) }.getOrNull() ?: return false
         val scheme = u.scheme
         if (scheme != "http" && scheme != "https") return false
+        // v1.4.1：本地隧道来源（127.0.0.1:<tunnelPort>）——页面实际运行在这里
+        if (tunnel.isRunning && u.host == "127.0.0.1" && u.port == tunnel.port) return true
+        val host = currentHost ?: return false
         val hostPart = u.host ?: return false
         val portPart = if (u.port > 0) ":${u.port}" else ""
         return hostPart + portPart == host
     }
 
     // ------------------------------------------------------------ 连接流程
+    /** 用户主动连接/重试：重置自动重连计数后执行完整流程。 */
     private fun connect() {
+        autoRetries = 0
+        reconnecting = false
+        runConnect()
+    }
+
+    /** 完整探测 + 加载流程：首选上次 host → 局域网候选 → 远程候选 → UDP 广播发现。 */
+    private fun runConnect() {
         val p = profile ?: return
         showLoading(getString(R.string.connect_lan))
+        probeJob?.cancel()
         probeJob = lifecycleScope.launch {
-            val result = GatewayClient.probe(p)
+            val preferred = ProfileStore.lastHost(this@ConnectActivity)
+            val result = GatewayClient.probe(p, this@ConnectActivity, preferred)
             if (!isFinishing) {
                 if (result == null) {
-                    showError(getString(R.string.err_no_reachable))
+                    onConnectFailed(getString(R.string.err_no_reachable))
                     return@launch
                 }
                 if (!result.dsh) {
-                    showError(getString(R.string.dsh_not_ready))
+                    onConnectFailed(getString(R.string.dsh_not_ready))
                     return@launch
                 }
+                autoRetries = 0
+                reconnecting = false
                 currentHost = result.host
                 mode = result.mode
                 ProfileStore.setLast(this@ConnectActivity, result.host, result.mode)
+                healProfile(p, result.host)
                 updateModeBadge(result.mode)
                 showLoading(getString(R.string.opening_ui))
+                // v1.4.1：本地回环隧道 —— 页面来源 127.0.0.1（回环判定 + 安全上下文），
+                // 模型设置等依赖回环身份的功能可用；隧道目标指向探测成功的网关
+                tunnel.retarget(result.host)
+                val origin = if (tunnel.start()) "http://127.0.0.1:${tunnel.port}" else p.urlFor(result.host)
                 // TODO: token 在 URL 查询参数中传递存在安全风险；
                 //       待网关支持 Authorization 头后改为通过请求头注入。
-                val url = p.urlFor(result.host) + "/?token=" + p.token
+                val url = "$origin/?token=" + p.token
                 webView.loadUrl(url)
+            }
+        }
+    }
+
+    /**
+     * v1.4.0 断线自愈入口：失败时自动重连（上限 3 次，指数间隔），超过才落错误页。
+     * 网络抖动 / PC 重启 / 换 IP 场景下用户无感知恢复。
+     */
+    private fun onConnectFailed(msg: String) {
+        if (autoRetries < 3) {
+            autoRetries++
+            reconnecting = true
+            showLoading(getString(R.string.reconnecting))
+            probeJob?.cancel()
+            probeJob = lifecycleScope.launch {
+                delay(1200L * autoRetries) // 1.2s/2.4s/3.6s —— 给 WiFi 重连与 DHCP 一点时间
+                runConnect()
+            }
+        } else {
+            autoRetries = 0
+            reconnecting = false
+            showError(msg)
+        }
+    }
+
+    /**
+     * v1.4.0 配置自愈：连接成功后把实际可达的 host 提到 profile.lan 首位并重存。
+     * PC 换 IP 后手机端自动记住新地址，下次连接省去发现流程。
+     */
+    private fun healProfile(p: ConnectionProfile, host: String) {
+        if (p.lan.firstOrNull() == host) return
+        val healed = p.copy(lan = listOf(host) + p.lan.filter { it != host })
+        ProfileStore.saveProfile(this, healed)
+        profile = healed
+    }
+
+    /**
+     * v1.4.0 网络监听：WiFi 回来/切换时自动自愈。
+     *  - 错误页可见 → 立即重连
+     *  - 正在重连等待 → 立即重连（不等延迟）
+     *  - Web 正常显示 → 静默重验：探测到 PC 换了地址则无感迁移
+     */
+    private fun armNetworkWatch() {
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                runOnUiThread { onNetworkAvailable() }
+            }
+        }
+        try {
+            cm.registerNetworkCallback(request, networkCallback!!)
+        } catch (e: Exception) {
+            networkCallback = null // 注册失败只降级：无网络事件驱动的自愈，手动重试仍可用
+        }
+    }
+
+    private fun onNetworkAvailable() {
+        if (isFinishing) return
+        when {
+            binding.errorOverlay.isVisible -> connect()
+            binding.loadingOverlay.isVisible && reconnecting -> connect()
+            webReady -> migrateIfHostMoved()
+        }
+    }
+
+    /** 静默重验：Web 正常时后台探测，发现 PC 地址变更则无感迁移 WebView。 */
+    private fun migrateIfHostMoved() {
+        val p = profile ?: return
+        val old = currentHost ?: return
+        probeJob?.cancel()
+        probeJob = lifecycleScope.launch {
+            val r = GatewayClient.probe(p, this@ConnectActivity, old)
+            if (!isFinishing && webReady && r != null && r.dsh && r.host != old) {
+                currentHost = r.host
+                mode = r.mode
+                ProfileStore.setLast(this@ConnectActivity, r.host, r.mode)
+                healProfile(p, r.host)
+                updateModeBadge(r.mode)
+                // v1.4.1：隧道改指新 IP；页面来源不变（127.0.0.1），reload 让 WS 立即走新目标
+                tunnel.retarget(r.host)
+                if (!tunnel.isRunning) tunnel.start()
+                val origin = if (tunnel.isRunning) "http://127.0.0.1:${tunnel.port}" else p.urlFor(r.host)
+                webView.loadUrl("$origin/?token=" + p.token)
             }
         }
     }
@@ -260,7 +385,22 @@ class ConnectActivity : AppCompatActivity() {
         })
     }
 
+    override fun onResume() {
+        super.onResume()
+        // v1.4.0：亮屏回 App 时错误页自动重试一次（离网再回场景的主要入口之一）
+        if (this::binding.isInitialized && binding.errorOverlay.isVisible) {
+            connect()
+        }
+    }
+
     override fun onDestroy() {
+        // v1.4.0：释放网络监听，避免泄漏
+        networkCallback?.let { cb ->
+            try { getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(cb) } catch (e: Exception) { /* ignore */ }
+        }
+        networkCallback = null
+        // v1.4.1：停止本地回环隧道
+        tunnel.stop()
         // 释放 WebView，避免内存泄漏
         try {
             webView.stopLoading()
