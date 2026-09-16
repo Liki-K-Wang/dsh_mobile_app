@@ -68,7 +68,13 @@ const PATCH_SCRIPT = `<script ${PATCH_MARKER}="1">
   // 状态栏高度，浏览器 env() 本就为 0）——消除设置导航图标上方的多余空余；
   // v0.3.4：内容区密排（聊天列边距 32px→10px、表格更密、markdown 更紧凑）；
   // 悬浮球磁吸边框（配合 App 1.3.5）；配对界面统一为设置页风格（settings-pairing）。
-  try { window.__dshMobilePatchVersion = "0.3.15"; } catch (e) {}
+  try { window.__dshMobilePatchVersion = "0.3.17"; } catch (e) {}
+  // v0.3.17：性能修复——enforceMobileChatLayout 的全树 TreeWalker + 逐节点
+  // getComputedStyle（强制样式计算）此前挂在 layoutObserver/collapseObserver 的
+  // 每次回调上；聊天根节点找不到时（hero 页等）每次 DOM 变更都全树扫描，DSH 频繁
+  // 改 frame 属性 → 真机可感知卡顿。修复：连续 3 次找不到后负缓存挂起（force=true
+  // 时重置，phase 切换/页面结构变化时触发），并把扫描从 observer 高频回调移到
+  // 400ms 看门狗慢路径 + arm 一次性执行。另删除 drawerWidth 死抽象（恒返回 100vw）。
   // 1) crypto.randomUUID 补齐：任何非安全上下文（http://LAN-IP / Tailscale）都缺失，
   //    桌面用局域网 IP 访问也一样会触发；安全上下文下已存在则 no-op。
   try {
@@ -129,6 +135,12 @@ const PATCH_SCRIPT = `<script ${PATCH_MARKER}="1">
       "  [data-dsh-overlay] [class*=_brand] svg{height:16px;width:auto}",
       "  body[data-dsh-overlay] [class$=_sidebarCol]{position:fixed!important;top:0!important;bottom:0!important;left:0!important;width:100vw!important;z-index:60!important;overflow:visible!important}",
       "  body[data-dsh-overlay] [class$=_sidebarCol] [class$=_root]{width:100%!important}",
+      // v0.3.16：抽屉内容「有时满宽有时缩在 280px」根因——DSH 的外层侧栏壳（hHd-Xa_root，
+      // 类属性以 quietBars/collapsed 结尾，[class$=_root] 匹配不到）带内联 style width:280px
+      // （用户可调侧栏宽的持久化值），把整条内容链锁死在 280px；列被强制 100vw 后右侧留白。
+      // 结构选择器 > div > div 精确命中该壳（col > div(contents) > 壳），!important 压过内联。
+      // 无头实测：280px→390px，React 重绘后仍 390px（样式表规则不受重绘影响）。
+      "  body[data-dsh-overlay] [class$=_sidebarCol] > div > div{width:100%!important;max-width:none!important}",
       // v0.3.15：纯 CSS 兜底——抽屉打开期间用 !important 强制 frame 的 grid 为
       // 0px 1fr 0px（对话列恒满宽、详情轨恒 0）。此前只强制了侧栏本身（fixed 100vw），
       // 若 JS 看门狗/观察器未生效（如 arm() 中途抛错），DSH 异步渲染撑开详情轨道时
@@ -273,7 +285,6 @@ const PATCH_SCRIPT = `<script ${PATCH_MARKER}="1">
   function toggleBtn(){ var f = frameEl(); if (!f) return null; return f.querySelector("[class$=_toggle]"); }
   function spacerEl(){ var f = frameEl(); return f ? f.querySelector("[data-dsh-drawer-spacer]") : null; }
   function maskEl(){ return document.getElementById("dsh-drawer-mask"); }
-  function drawerWidth(){ return "100vw"; }
 
   function applyHidden(frame){
     try {
@@ -335,7 +346,7 @@ const PATCH_SCRIPT = `<script ${PATCH_MARKER}="1">
       if (!sb) return;
       sb.style.position = "fixed";
       sb.style.top = "0"; sb.style.bottom = "0"; sb.style.left = "0";
-      sb.style.width = drawerWidth();
+      sb.style.width = "100vw";
       sb.style.overflow = "visible"; // 覆盖 applyHidden 的 width:0/overflow:hidden，抽屉要展开
       sb.style.zIndex = "60";
       // 抽屉里自带的折叠按钮冗余且会触发 App 展开逻辑，隐藏掉
@@ -577,7 +588,11 @@ const PATCH_SCRIPT = `<script ${PATCH_MARKER}="1">
             }
           }
         }
-        if (relevant) { ensureHeaderToggle(); ensureHeroToggle(); }
+        if (relevant) {
+          ensureHeaderToggle(); ensureHeroToggle();
+          // v0.3.17：phase 切换（hero→active）后聊天根节点才可能出现 → 强制重扫密排
+          enforceMobileChatLayout(true);
+        }
       });
       obs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-phase"] });
     } catch (e) {}
@@ -608,20 +623,26 @@ const PATCH_SCRIPT = `<script ${PATCH_MARKER}="1">
     } catch (e) {}
   }
   var chatRootEl = null;
-  function enforceMobileChatLayout(){
+  var chatScanFails = 0; // v0.3.17：连续找不到聊天根的次数（负缓存，防每次全树 getComputedStyle）
+  function enforceMobileChatLayout(force){
     ensureMobileChatStyle();
     try {
       if (!chatRootEl || !document.contains(chatRootEl)) {
+        // v0.3.17：负缓存——连续 3 次全树扫描都找不到聊天根（hero 页等无该变量的场景）
+        // 就挂起，phase 切换/结构变化时由调用方 force=true 重置重扫。此前挂在
+        // layoutObserver/collapseObserver 每次回调上，找不到时每次 DOM 变更都全树
+        // TreeWalker + 逐节点 getComputedStyle（强制样式计算）→ 真机卡顿源。
+        if (!force && chatScanFails >= 3) return;
         var walker = document.createTreeWalker(document.body, 1 /* SHOW_ELEMENT */);
         var n;
+        var found = null;
         while ((n = walker.nextNode())) {
-          if (getComputedStyle(n).getPropertyValue("--dsh-composer-side-clearance") !== "") {
-            chatRootEl = n;
-            break;
-          }
+          if (getComputedStyle(n).getPropertyValue("--dsh-composer-side-clearance") !== "") { found = n; break; }
         }
+        if (found) { chatRootEl = found; chatScanFails = 0; }
+        else { chatScanFails++; return; }
       }
-      if (chatRootEl) chatRootEl.style.setProperty("--dsh-composer-side-clearance", "-6px");
+      if (chatRootEl && document.contains(chatRootEl)) chatRootEl.style.setProperty("--dsh-composer-side-clearance", "-6px");
     } catch (e) {}
   }
 
@@ -642,10 +663,26 @@ const PATCH_SCRIPT = `<script ${PATCH_MARKER}="1">
           // v0.3.15：覆盖态必须持续重挂 body 标记，CSS !important 规则（侧栏满宽 + grid 满宽）
           // 才始终生效——即使标记被意外移除，下一拍即恢复，对话区永不收缩。
           try { document.body.setAttribute("data-dsh-overlay", "1"); } catch (e) {}
+          // v0.3.16：JS 兜底——若 DSH 改结构导致 > div > div 选择器失配，壳的内联
+          // width:280px 会重新锁死内容宽度。从内层 root 向上走到列，凡带内联像素宽的
+          // 中间层一律改 100%（CSS 规则正常时此循环无操作，幂等）。
+          try {
+            var colEl = document.querySelector('[class$=_sidebarCol]');
+            var innerRoot = colEl && colEl.querySelector('[class$=_root]');
+            if (colEl && innerRoot) {
+              var up = innerRoot.parentElement;
+              while (up && up !== colEl) {
+                // 注意：本补丁整体位于模板字符串内，正则 \d 必须写成 \\d 才能落到内层脚本
+                if (up.style && /^\\d+px$/.test(up.style.width || "")) up.style.width = "100%";
+                up = up.parentElement;
+              }
+            }
+          } catch (e) {}
           applyOverlayLayout(f);
           applyColumnPins(f);
         } else {
           enforceMobileLayout(f);
+          enforceMobileChatLayout(); // v0.3.17：慢路径补聊天密排（找不到时负缓存，开销为零）
         }
       } catch (e) {}
     }, 400);
@@ -670,9 +707,9 @@ const PATCH_SCRIPT = `<script ${PATCH_MARKER}="1">
     try {
       // v0.3.14：attributeFilter 增加 class / data-details-collapsed——DSH 用数据属性
       // 驱动详情面板，只盯 style 抓不到（详情轨道被撑开 → 对话区被挤窄）。
-      layoutObserver = new MutationObserver(function(){ enforceMobileLayout(frame); enforceMobileChatLayout(); });
+      layoutObserver = new MutationObserver(function(){ enforceMobileLayout(frame); });
       layoutObserver.observe(frame, { attributes: true, attributeFilter: ["style", "class", "data-details-collapsed"], subtree: false });
-      collapseObserver = new MutationObserver(function(){ enforceMobileLayout(frame); enforceMobileChatLayout(); });
+      collapseObserver = new MutationObserver(function(){ enforceMobileLayout(frame); });
       collapseObserver.observe(frame, { attributes: true, attributeFilter: ["data-sidebar-collapsed"] });
     } catch (e) {}
   }

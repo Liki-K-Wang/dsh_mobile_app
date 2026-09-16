@@ -1,7 +1,7 @@
-{
+﻿{
   "name": "dsh_mobile_app",
-  "version": "0.3.14",
-  "description": "A standard DeepSeek Harness (dsh) plugin that lets an Android phone scan a QR code and connect to the harness web GUI securely — LAN/Tailscale auto-detection, token auth, reverse proxy, and WebSocket forwarding.",
+  "version": "0.4.1",
+  "description": "A standard DeepSeek Harness (dsh) plugin that lets an Android phone scan a QR code and connect to the harness web GUI securely 鈥?LAN/Tailscale auto-detection, token auth, reverse proxy, and WebSocket forwarding.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
